@@ -31,25 +31,27 @@
       font-size: 1.2em;
       margin-top: 0.5em;
     }
-    #retry-btn {
+    button {
       margin-top: 1em;
       padding: 0.5em 1.5em;
       font-size: 1em;
       cursor: pointer;
-      display: none;
-      background: #4a90e2;
-      color: white;
       border: none;
       border-radius: 0.3em;
     }
+    #retry-btn {
+      background: #4a90e2;
+      color: white;
+      display: none;
+    }
     #lang-toggle {
-      margin-top: 1em;
-      cursor: pointer;
       background: #ddd;
-      border: none;
-      padding: 0.4em 1em;
-      border-radius: 0.3em;
       font-weight: bold;
+    }
+    #enable-orientation {
+      background: #ff9800;
+      color: white;
+      display: none;
     }
     footer {
       margin-top: 2em;
@@ -65,11 +67,10 @@
   <div id="distance"></div>
   <div id="status">جاري انتظار إذن الموقع والبوصلة...</div>
   <button id="retry-btn">إعادة المحاولة</button>
+  <button id="enable-orientation">السماح للبوصلة</button>
   <br />
   <button id="lang-toggle">English</button>
-
   <footer>حقوق الملكية &copy; صلاح الدين</footer>
-
   <audio id="beep" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"></audio>
 
 <script>
@@ -87,10 +88,11 @@
       locating: "جاري تحديد الموقع...",
       locationError: "تعذر الحصول على الموقع. يرجى السماح بالوصول.",
       compassError: "جهازك لا يدعم بوصلة الاتجاه أو لم يتم تفعيلها.",
-      waitingCompass: "تم الحصول على الموقع. جاري انتظار بيانات البوصلة...",
+      waitingCompass: "تم الحصول على الموقع. اضغط على زر السماح للبوصلة.",
       pointPhone: "يرجى توجيه هاتفك.",
       retry: "إعادة المحاولة",
-      langToggle: "English"
+      langToggle: "English",
+      allowCompass: "السماح للبوصلة"
     },
     en: {
       angle: "Qibla Angle: ",
@@ -98,10 +100,11 @@
       locating: "Locating your position...",
       locationError: "Unable to get location. Please allow access.",
       compassError: "Your device does not support compass or it is disabled.",
-      waitingCompass: "Location acquired. Waiting for compass data...",
+      waitingCompass: "Location acquired. Tap the button to allow compass.",
       pointPhone: "Please point your phone.",
       retry: "Retry",
-      langToggle: "العربية"
+      langToggle: "العربية",
+      allowCompass: "Allow Compass"
     }
   };
 
@@ -109,33 +112,33 @@
 
   function setLanguage(lang) {
     currentLang = lang;
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
     document.getElementById("title").textContent = lang === "ar" ? "اتجاه القبلة" : "Qibla Direction";
     document.getElementById("retry-btn").textContent = i18n[lang].retry;
     document.getElementById("status").textContent = i18n[lang].locating;
     document.getElementById("lang-toggle").textContent = i18n[lang].langToggle;
+    document.getElementById("enable-orientation").textContent = i18n[lang].allowCompass;
     document.getElementById("angle").textContent = "";
     document.getElementById("distance").textContent = "";
   }
 
   function calculateQiblaAngle(lat, lon) {
-    const toRadians = (d) => (d * Math.PI) / 180;
-    const toDegrees = (r) => (r * 180) / Math.PI;
-
+    const toRadians = d => (d * Math.PI) / 180;
+    const toDegrees = r => (r * 180) / Math.PI;
     const latRad = toRadians(lat);
     const lonRad = toRadians(lon);
     const kaabaLatRad = toRadians(kaaba.lat);
     const kaabaLonRad = toRadians(kaaba.lon);
-
     const y = Math.sin(kaabaLonRad - lonRad);
     const x = Math.cos(latRad) * Math.tan(kaabaLatRad) - Math.sin(latRad) * Math.cos(kaabaLonRad - lonRad);
-
     let angle = toDegrees(Math.atan2(y, x));
     if (angle < 0) angle += 360;
     return angle;
   }
 
   function calculateDistance(lat1, lon1, lat2, lon2) {
-    const R = 6371; // km
+    const R = 6371;
     const dLat = ((lat2 - lat1) * Math.PI) / 180;
     const dLon = ((lon2 - lon1) * Math.PI) / 180;
     const a =
@@ -149,7 +152,6 @@
   }
 
   function getColorFromDiff(diff) {
-    // from red (far) to green (near)
     const ratio = 1 - diff / 180;
     const r = Math.round(255 - (255 - 54) * ratio);
     const g = Math.round(80 - (80 - 54) * ratio);
@@ -164,17 +166,13 @@
     let diff = qiblaAngle - deviceHeading;
     if (diff < 0) diff += 360;
     if (diff > 180) diff = 360 - diff;
-
     arrow.style.transform = `rotate(${qiblaAngle - deviceHeading}deg)`;
     angleDisplay.textContent = i18n[currentLang].angle + Math.round(qiblaAngle) + "°";
-
     if (userLat !== null && userLon !== null) {
       const dist = calculateDistance(userLat, userLon, kaaba.lat, kaaba.lon);
       distanceDisplay.textContent = i18n[currentLang].distance + dist + " كم";
     }
-
     arrow.style.color = getColorFromDiff(diff);
-
     const now = Date.now();
     if (diff <= 5 && now - lastBeepTime > 2000) {
       beep.play().catch(() => {});
@@ -213,21 +211,46 @@
         userLon = pos.coords.longitude;
         qiblaAngle = calculateQiblaAngle(userLat, userLon);
         document.getElementById("status").textContent = i18n[currentLang].waitingCompass;
-        window.addEventListener("deviceorientation", handleOrientation, true);
+        document.getElementById("enable-orientation").style.display = "inline-block";
       },
       (err) => {
+        console.error("Location error:", err);
         document.getElementById("status").textContent = i18n[currentLang].locationError;
         document.getElementById("retry-btn").style.display = "inline-block";
       }
     );
   }
 
+  document.getElementById("enable-orientation").addEventListener("click", () => {
+    if (typeof DeviceOrientationEvent?.requestPermission === "function") {
+      DeviceOrientationEvent.requestPermission()
+        .then((permissionState) => {
+          if (permissionState === "granted") {
+            window.addEventListener("deviceorientation", handleOrientation, true);
+            document.getElementById("enable-orientation").style.display = "none";
+            document.getElementById("status").textContent = i18n[currentLang].pointPhone;
+          } else {
+            document.getElementById("status").textContent = i18n[currentLang].compassError;
+          }
+        })
+        .catch(err => {
+          console.error("Compass permission error:", err);
+          document.getElementById("status").textContent = i18n[currentLang].compassError;
+        });
+    } else {
+      window.addEventListener("deviceorientation", handleOrientation, true);
+      document.getElementById("enable-orientation").style.display = "none";
+      document.getElementById("status").textContent = i18n[currentLang].pointPhone;
+    }
+  });
+
   document.getElementById("retry-btn").addEventListener("click", () => {
     startQibla();
   });
 
   document.getElementById("lang-toggle").addEventListener("click", () => {
-    setLanguage(currentLang === "ar" ? "en" : "ar");
+    const newLang = currentLang === "ar" ? "en" : "ar";
+    setLanguage(newLang);
   });
 
   setLanguage(currentLang);
