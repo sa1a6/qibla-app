@@ -5,54 +5,181 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>اتجاه القبلة - Qibla Direction</title>
   <style>
-    body {
-      font-family: 'Arial', sans-serif;
-      background: #f3efe0;
-      color: #333;
-      text-align: center;
-      padding: 1em;
-      user-select: none;
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
+
+    /* Reset */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
+
+    body {
+      font-family: 'Cairo', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #f0f0f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 2rem 1rem;
+      user-select: none;
+      text-align: center;
+    }
+
+    h1#title {
+      font-weight: 700;
+      font-size: 2.8rem;
+      margin-bottom: 0.5rem;
+      text-shadow: 0 0 8px rgba(0,0,0,0.2);
+    }
+
     #qibla-arrow {
-      font-size: 8em;
-      margin: 0.2em auto;
+      font-size: 11rem;
+      margin: 1rem auto 0.5rem auto;
       display: inline-block;
       transition: transform 0.5s ease, color 0.5s ease;
-      color: #4a90e2;
+      color: #ffd700;
+      filter: drop-shadow(0 0 10px #ffd700);
     }
-    #status {
-      margin-top: 1em;
-      font-size: 1.2em;
-      color: #666;
-      min-height: 1.5em;
-    }
+
     #angle, #distance {
-      font-weight: bold;
-      font-size: 1.2em;
-      margin-top: 0.5em;
+      font-weight: 600;
+      font-size: 1.3rem;
+      margin-top: 0.4rem;
+      text-shadow: 0 0 5px rgba(0,0,0,0.15);
     }
-    button {
-      margin-top: 1em;
-      padding: 0.5em 1.5em;
-      font-size: 1em;
-      cursor: pointer;
-      background: #4a90e2;
-      color: white;
+
+    #status {
+      margin-top: 1rem;
+      font-size: 1.15rem;
+      color: #dcdcdccc;
+      min-height: 1.7em;
+      font-weight: 500;
+      text-shadow: 0 0 4px rgba(0,0,0,0.2);
+    }
+
+    button, select, input {
+      font-family: 'Cairo', sans-serif;
+    }
+
+    #retry-btn, #lang-toggle {
+      margin-top: 1.3rem;
+      padding: 0.65em 2.3em;
+      font-size: 1.05rem;
+      font-weight: 700;
+      border-radius: 40px;
       border: none;
-      border-radius: 0.3em;
+      cursor: pointer;
+      background: #ffd700;
+      color: #4a2e00;
+      box-shadow: 0 4px 8px rgb(255 215 0 / 0.6);
+      transition: background-color 0.3s ease, color 0.3s ease;
+      user-select: none;
+      outline-offset: 2px;
+      outline-color: transparent;
+      outline-style: solid;
     }
-    #retry-btn, #enable-orientation {
+
+    #retry-btn:hover, #lang-toggle:hover {
+      background-color: #fff;
+      color: #764ba2;
+      box-shadow: 0 6px 12px rgb(255 255 255 / 0.8);
+    }
+
+    #manual-location {
+      margin-top: 2rem;
+      background: rgba(255 255 255 / 0.15);
+      padding: 1.8rem 2rem;
+      border-radius: 15px;
+      width: 320px;
+      box-shadow: 0 0 20px rgb(255 255 255 / 0.15);
+      user-select: auto;
+      backdrop-filter: blur(10px);
+    }
+
+    #manual-location label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 700;
+      font-size: 1rem;
+      color: #ffd700;
+      text-shadow: 0 0 4px rgba(0,0,0,0.25);
+    }
+
+    #manual-location select, 
+    #manual-location input {
+      width: 100%;
+      padding: 0.55em 0.9em;
+      font-size: 1rem;
+      border-radius: 10px;
+      border: none;
+      outline: none;
+      box-shadow: inset 0 0 6px rgba(0,0,0,0.15);
+      transition: box-shadow 0.3s ease;
+      margin-bottom: 1.2rem;
+    }
+
+    #manual-location select:focus,
+    #manual-location input:focus {
+      box-shadow: 0 0 12px #ffd700;
+      background: rgba(255 255 255 / 0.3);
+      color: #4a2e00;
+      font-weight: 700;
+    }
+
+    #manual-location button {
+      background: #4a2e00;
+      color: #ffd700;
+      font-weight: 700;
+      padding: 0.65em 0;
+      font-size: 1.1rem;
+      border-radius: 40px;
+      border: none;
+      width: 100%;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgb(74 46 0 / 0.7);
+      transition: background-color 0.3s ease, color 0.3s ease;
+    }
+
+    #manual-location button:hover {
+      background: #ffd700;
+      color: #4a2e00;
+      box-shadow: 0 6px 14px rgb(255 215 0 / 0.8);
+    }
+
+    #offline-info {
+      margin-top: 1rem;
+      color: #ffb347;
+      font-weight: 600;
+      text-shadow: 0 0 6px rgba(255 179 71, 0.8);
       display: none;
+      user-select: none;
     }
-    #lang-toggle {
-      background: #ddd;
-      color: #333;
-      font-weight: bold;
-    }
+
     footer {
-      margin-top: 2em;
-      font-size: 0.9em;
-      color: #aaa;
+      margin-top: 3rem;
+      font-size: 0.9rem;
+      color: #ffd700cc;
+      user-select: none;
+      text-shadow: 0 0 8px rgba(255, 215, 0, 0.7);
+    }
+
+    /* Responsive */
+    @media (max-width: 400px) {
+      #manual-location {
+        width: 90vw;
+        padding: 1.4rem 1.5rem;
+      }
+
+      #qibla-arrow {
+        font-size: 7rem;
+      }
+
+      h1#title {
+        font-size: 2rem;
+      }
     }
   </style>
 </head>
@@ -62,11 +189,24 @@
   <div id="angle"></div>
   <div id="distance"></div>
   <div id="status">جاري انتظار إذن الموقع والبوصلة...</div>
-
   <button id="retry-btn">إعادة المحاولة</button>
-  <button id="enable-orientation">تفعيل البوصلة</button>
   <br />
   <button id="lang-toggle">English</button>
+
+  <div id="manual-location">
+    <label for="country">الدولة:</label>
+    <select id="country">
+      <option value="">اختر الدولة</option>
+      <option value="sa">السعودية</option>
+      <option value="eg">مصر</option>
+      <option value="jo">الأردن</option>
+    </select>
+    <label for="region">المحافظة / المنطقة:</label>
+    <input type="text" id="region" placeholder="أدخل المحافظة أو المنطقة" />
+    <button id="manual-location-btn">استخدام الموقع اليدوي</button>
+  </div>
+
+  <div id="offline-info">لا تتوفر بيانات الموقع، يرجى توجيه الهاتف إلى اتجاه القبلة باستخدام البوصلة.</div>
 
   <footer>حقوق الملكية &copy; صلاح الدين</footer>
 
@@ -91,7 +231,9 @@
       pointPhone: "يرجى توجيه هاتفك.",
       retry: "إعادة المحاولة",
       langToggle: "English",
-      enableCompass: "تفعيل البوصلة"
+      manualInputPrompt: "يرجى اختيار الدولة وإدخال المحافظة",
+      manualInputError: "لا توجد بيانات لهذه المحافظة. يرجى المحاولة مرة أخرى.",
+      offlineMode: "لا تتوفر بيانات الموقع، يرجى توجيه الهاتف."
     },
     en: {
       angle: "Qibla Angle: ",
@@ -103,7 +245,9 @@
       pointPhone: "Please point your phone.",
       retry: "Retry",
       langToggle: "العربية",
-      enableCompass: "Enable Compass"
+      manualInputPrompt: "Please select country and enter region",
+      manualInputError: "No data for this region. Please try again.",
+      offlineMode: "No location data available, please point your phone."
     }
   };
 
@@ -115,9 +259,9 @@
     document.getElementById("retry-btn").textContent = i18n[lang].retry;
     document.getElementById("status").textContent = i18n[lang].locating;
     document.getElementById("lang-toggle").textContent = i18n[lang].langToggle;
-    document.getElementById("enable-orientation").textContent = i18n[lang].enableCompass;
     document.getElementById("angle").textContent = "";
     document.getElementById("distance").textContent = "";
+    document.getElementById("offline-info").style.display = "none";
   }
 
   function calculateQiblaAngle(lat, lon) {
@@ -152,11 +296,11 @@
   }
 
   function getColorFromDiff(diff) {
-    // from red (far) to green (near)
+    // from red (far) to yellow (near)
     const ratio = 1 - diff / 180;
-    const r = Math.round(255 - (255 - 54) * ratio);
-    const g = Math.round(80 - (80 - 54) * ratio);
-    const b = 54;
+    const r = Math.round(255);
+    const g = Math.round(215 * ratio + 40);
+    const b = 0;
     return `rgb(${r},${g},${b})`;
   }
 
@@ -164,6 +308,13 @@
     const arrow = document.getElementById("qibla-arrow");
     const angleDisplay = document.getElementById("angle");
     const distanceDisplay = document.getElementById("distance");
+
+    if (qiblaAngle === null) {
+      arrow.style.color = '#ffb347';
+      document.getElementById("status").textContent = i18n[currentLang].offlineMode;
+      return;
+    }
+
     let diff = qiblaAngle - deviceHeading;
     if (diff < 0) diff += 360;
     if (diff > 180) diff = 360 - diff;
@@ -173,7 +324,9 @@
 
     if (userLat !== null && userLon !== null) {
       const dist = calculateDistance(userLat, userLon, kaaba.lat, kaaba.lon);
-      distanceDisplay.textContent = i18n[currentLang].distance + dist + (currentLang === "ar" ? " كم" : " km");
+      distanceDisplay.textContent = i18n[currentLang].distance + dist + " كم";
+    } else {
+      distanceDisplay.textContent = "";
     }
 
     arrow.style.color = getColorFromDiff(diff);
@@ -200,18 +353,16 @@
     updateQiblaArrow(heading);
   }
 
-  function startOrientation() {
+  function startCompass() {
     if (
       typeof DeviceOrientationEvent !== "undefined" &&
       typeof DeviceOrientationEvent.requestPermission === "function"
     ) {
-      // For iOS 13+ devices
       DeviceOrientationEvent.requestPermission()
         .then((response) => {
           if (response === "granted") {
             window.addEventListener("deviceorientation", handleOrientation, true);
             document.getElementById("status").textContent = i18n[currentLang].pointPhone;
-            document.getElementById("enable-orientation").style.display = "none";
           } else {
             document.getElementById("status").textContent = i18n[currentLang].compassError;
           }
@@ -220,16 +371,19 @@
           document.getElementById("status").textContent = i18n[currentLang].compassError;
         });
     } else {
-      // Non iOS or no permission request needed
       window.addEventListener("deviceorientation", handleOrientation, true);
       document.getElementById("status").textContent = i18n[currentLang].pointPhone;
-      document.getElementById("enable-orientation").style.display = "none";
     }
+  }
+
+  function offlineMode() {
+    document.getElementById("status").textContent = i18n[currentLang].offlineMode;
+    document.getElementById("offline-info").style.display = "block";
+    startCompass();
   }
 
   function startQibla() {
     document.getElementById("retry-btn").style.display = "none";
-    document.getElementById("enable-orientation").style.display = "none";
     document.getElementById("status").textContent = i18n[currentLang].locating;
 
     if (!navigator.geolocation) {
@@ -242,33 +396,97 @@
       (pos) => {
         userLat = pos.coords.latitude;
         userLon = pos.coords.longitude;
+        localStorage.setItem("lastKnownLat", userLat);
+        localStorage.setItem("lastKnownLon", userLon);
         qiblaAngle = calculateQiblaAngle(userLat, userLon);
         document.getElementById("status").textContent = i18n[currentLang].waitingCompass;
-
-        if (
-          typeof DeviceOrientationEvent !== "undefined" &&
-          typeof DeviceOrientationEvent.requestPermission === "function"
-        ) {
-          // Show enable button for iOS
-          document.getElementById("enable-orientation").style.display = "inline-block";
-        } else {
-          window.addEventListener("deviceorientation", handleOrientation, true);
-          document.getElementById("status").textContent = i18n[currentLang].pointPhone;
-        }
+        startCompass();
       },
       (err) => {
-        document.getElementById("status").textContent = i18n[currentLang].locationError;
-        document.getElementById("retry-btn").style.display = "inline-block";
-      }
+        const savedLat = localStorage.getItem("lastKnownLat");
+        const savedLon = localStorage.getItem("lastKnownLon");
+        if (savedLat && savedLon) {
+          userLat = parseFloat(savedLat);
+          userLon = parseFloat(savedLon);
+          qiblaAngle = calculateQiblaAngle(userLat, userLon);
+          document.getElementById("status").textContent =
+            currentLang === "ar"
+              ? "لم نستطع الحصول على الموقع الحالي، نستخدم الموقع المخزن سابقًا."
+              : "Unable to get current location, using last known location.";
+          startCompass();
+        } else {
+          offlineMode();
+        }
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
   }
 
-  document.getElementById("retry-btn").addEventListener("click", () => {
-    startQibla();
+  // بيانات تقريبية للمحافظات
+ const locations = {
+  sa: {
+    الرياض: { lat: 24.7136, lon: 46.6753 },
+    جدة: { lat: 21.4858, lon: 39.1925 },
+    مكة: { lat: 21.3891, lon: 39.8579 },
+    الدمام: { lat: 26.3927, lon: 49.9777 },
+    المدينة: { lat: 24.5247, lon: 39.5692 },
+    الطائف: { lat: 21.2703, lon: 40.4158 },
+    خميس مشيط: { lat: 18.3068, lon: 42.7290 },
+    بريدة: { lat: 26.3260, lon: 43.9743 },
+    حائل: { lat: 27.5114, lon: 41.7208 },
+    تبوك: { lat: 28.3838, lon: 36.5559 },
+    جيزان: { lat: 16.8892, lon: 42.5519 },
+    نجران: { lat: 17.4871, lon: 44.1261 },
+    أبها: { lat: 18.2184, lon: 42.5053 }
+  },
+  eg: {
+    القاهرة: { lat: 30.0444, lon: 31.2357 },
+    الإسكندرية: { lat: 31.2001, lon: 29.9187 },
+    الجيزة: { lat: 30.0131, lon: 31.2089 },
+    الشرقية: { lat: 30.5833, lon: 31.5000 },
+    الدقهلية: { lat: 31.0553, lon: 31.3785 },
+    البحيرة: { lat: 30.8667, lon: 30.9167 },
+    المنوفية: { lat: 30.5500, lon: 30.9333 },
+    القليوبية: { lat: 30.2915, lon: 31.2445 },
+    سوهاج: { lat: 26.5603, lon: 31.6956 },
+    أسيوط: { lat: 27.1859, lon: 31.1839 }
+  },
+  jo: {
+    عمان: { lat: 31.9454, lon: 35.9284 },
+    إربد: { lat: 32.5569, lon: 35.8513 },
+    الزرقاء: { lat: 32.0723, lon: 36.0888 },
+    العقبة: { lat: 29.5328, lon: 35.0062 },
+    المفرق: { lat: 32.3500, lon: 36.2167 },
+    الكرك: { lat: 31.1810, lon: 35.7044 },
+    الطفيلة: { lat: 30.7890, lon: 35.5790 }
+  }
+
+
+  };
+
+  document.getElementById("manual-location-btn").addEventListener("click", () => {
+    const country = document.getElementById("country").value;
+    const region = document.getElementById("region").value.trim();
+
+    if (!country || !region) {
+      alert(i18n[currentLang].manualInputPrompt);
+      return;
+    }
+
+    if (locations[country] && locations[country][region]) {
+      userLat = locations[country][region].lat;
+      userLon = locations[country][region].lon;
+      qiblaAngle = calculateQiblaAngle(userLat, userLon);
+      document.getElementById("status").textContent = i18n[currentLang].waitingCompass;
+      document.getElementById("offline-info").style.display = "none";
+      startCompass();
+    } else {
+      alert(i18n[currentLang].manualInputError);
+    }
   });
 
-  document.getElementById("enable-orientation").addEventListener("click", () => {
-    startOrientation();
+  document.getElementById("retry-btn").addEventListener("click", () => {
+    startQibla();
   });
 
   document.getElementById("lang-toggle").addEventListener("click", () => {
