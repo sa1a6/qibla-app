@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>اتجاه القبلة</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
+
+    body {
+      margin: 0;
+      padding: 20px;
+      height: 100vh;
+      background: linear-gradient(135deg, #8C6D5A, #D8C3A5);
+      font-family: 'Cairo', sans-serif;
+      color: #3E2F1C;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      user-select: none;
+      transition: direction 0.3s ease;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 15px;
+      text-shadow: 2px 2px 6px rgba(0,0,0,0.2);
+      letter-spacing: 2px;
+      text-align: center;
+    }
+
+    #qibla-arrow {
+      font-size: 180px;
+      transition: transform 0.3s ease, color 0.3s ease;
+      color: #5B4636;
+      text-shadow: 0 0 8px rgba(255, 215, 0, 0.7),
+                   1px 1px 2px #7A5A3D,
+                  -1px -1px 2px #7A5A3D;
+    }
+
+    #angle, #distance, #status {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-top: 10px;
+      background: rgba(255, 255, 255, 0.3);
+      padding: 8px 24px;
+      border-radius: 20px;
+      box-shadow: 2px 2px 6px rgba(0,0,0,0.1);
+      letter-spacing: 1px;
+      min-width: 260px;
+      text-align: center;
+    }
+
+    #retry-btn, #lang-btn {
+      margin-top: 20px;
+      padding: 10px 30px;
+      font-size: 1rem;
+      font-weight: bold;
+      background: #C59D5F;
+      color: #3E2F1C;
+      border: 2px solid #3E2F1C;
+      border-radius: 30px;
+      cursor: pointer;
+      box-shadow: 2px 2px 6px rgba(0,0,0,0.2);
+      transition: all 0.3s ease;
+      user-select: none;
+    }
+
+    #retry-btn:hover, #lang-btn:hover {
+      background: #3E2F1C;
+      color: #F2E3C6;
+    }
+
+    footer {
+      margin-top: 30px;
+      font-size: 13px;
+      color: rgba(62, 47, 28, 0.7);
+      text-align: center;
+    }
+
+    .top-controls {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="top-controls">
+    <button id="lang-btn">English</button>
+  </div>
+
+  <h1 id="title">اتجاه القبلة</h1>
+  <div id="status">جاري تحديد الموقع...</div>
+  <div id="qibla-arrow">🧭</div>
+  <div id="angle">زاوية القبلة: -</div>
+  <div id="distance">المسافة إلى مكة: -</div>
+  <button id="retry-btn" style="display:none;">إعادة المحاولة</button>
+
+  <audio id="beep" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg" preload="auto"></audio>
+
+  <footer>© 2025 جميع الحقوق محفوظة لـ صلاح الدين</footer>
+
+  <script>
+    const kaaba = { lat: 21.4225, lon: 39.8262 };
+    let qiblaAngle = 0;
+    let userLat = null;
+    let userLon = null;
+    const beep = document.getElementById('beep');
+    let lastBeepTime = 0;
+
+    const langBtn = document.getElementById("lang-btn");
+    let currentLang = localStorage.getItem("lang") || "ar";
+
+    const i18n = {
+      ar: {
+        title: "اتجاه القبلة",
+        locating: "جاري تحديد الموقع...",
+        angle: "زاوية القبلة: ",
+        distance: "المسافة إلى مكة: ",
+        retry: "إعادة المحاولة",
+        compassError: "البوصلة غير مدعومة في هذا الجهاز.",
+        locationError: "تعذر تحديد الموقع. يرجى السماح بالوصول إلى الموقع.",
+        langBtn: "English",
+        rights: "© 2025 جميع الحقوق محفوظة لـ صلاح الدين"
+      },
+      en: {
+        title: "Qibla Direction",
+        locating: "Locating...",
+        angle: "Qibla Angle: ",
+        distance: "Distance to Makkah: ",
+        retry: "Retry",
+        compassError: "Compass not supported on this device.",
+        locationError: "Failed to get location. Please allow access.",
+        langBtn: "العربية",
+        rights: "© 2025 All rights reserved to Salah Al-Din"
+      }
+    };
+
+    function setLanguage(lang) {
+      currentLang = lang;
+      localStorage.setItem("lang", lang);
+      document.documentElement.lang = lang;
+      document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
+
+      const t = i18n[lang];
+      document.getElementById("title").textContent = t.title;
+      document.getElementById("status").textContent = t.locating;
+      document.getElementById("retry-btn").textContent = t.retry;
+      document.getElementById("angle").textContent = t.angle + "-";
+      document.getElementById("distance").textContent = t.distance + "-";
+      document.getElementById("lang-btn").textContent = t.langBtn;
+      document.querySelector("footer").textContent = t.rights;
+    }
+
+    langBtn.addEventListener("click", () => {
+      const newLang = currentLang === "ar" ? "en" : "ar";
+      setLanguage(newLang);
+    });
+
+    function toRadians(deg) {
+      return deg * Math.PI / 180;
+    }
+    function toDegrees(rad) {
+      return rad * 180 / Math.PI;
+    }
+
+    function calculateQiblaAngle(userLat, userLon) {
+      const lat1 = toRadians(userLat);
+      const lon1 = toRadians(userLon);
+      const lat2 = toRadians(kaaba.lat);
+      const lon2 = toRadians(kaaba.lon);
+
+      const dLon = lon2 - lon1;
+      const y = Math.sin(dLon) * Math.cos(lat2);
+      const x = Math.cos(lat1)*Math.sin(lat2) - Math.sin(lat1)*Math.cos(lat2)*Math.cos(dLon);
+      let brng = Math.atan2(y, x);
+      brng = toDegrees(brng);
+      return (brng + 360) % 360;
+    }
+
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+      const R = 6371;
+      const dLat = toRadians(lat2 - lat1);
+      const dLon = toRadians(lon2 - lon1);
+      const a = Math.sin(dLat/2) ** 2 +
+                Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) *
+                Math.sin(dLon/2) ** 2;
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return (R * c).toFixed(2);
+    }
+
+    function getColorFromDiff(diff) {
+      const maxDiff = 180;
+      const ratio = Math.min(diff, maxDiff) / maxDiff;
+      const r = Math.round(76 + (244 - 76) * ratio); 
+      const g = Math.round(175 - (175 - 67) * ratio);
+      const b = Math.round(80 - (80 - 54) * ratio);
+      return `rgb(${r},${g},${b})`;
+    }
+
+    function updateQiblaArrow(deviceHeading) {
+      const arrow = document.getElementById("qibla-arrow");
+      const angleDisplay = document.getElementById("angle");
+      const distanceDisplay = document.getElementById("distance");
+      let diff = qiblaAngle - deviceHeading;
+      if(diff < 0) diff += 360;
+      if(diff > 180) diff = 360 - diff;
+
+      arrow.style.transform = `rotate(${qiblaAngle - deviceHeading}deg)`;
+      angleDisplay.textContent = i18n[currentLang].angle + Math.round(qiblaAngle) + "°";
+
+      if(userLat !== null && userLon !== null){
+        const dist = calculateDistance(userLat, userLon, kaaba.lat, kaaba.lon);
+        distanceDisplay.textContent = i18n[currentLang].distance + dist + " كم";
+      }
+
+      arrow.style.color = getColorFromDiff(diff);
+
+      const now = Date.now();
+      if(diff <= 5 && now - lastBeepTime > 2000){
+        beep.play().catch(() => {});
+        if(navigator.vibrate) navigator.vibrate(300);
+        lastBeepTime = now;
+      }
+    }
+
+    function handleOrientation(event) {
+      let heading;
+      if(event.webkitCompassHeading !== undefined) {
+        heading = event.webkitCompassHeading;
+      } else if(event.alpha !== null) {
+        heading = 360 - event.alpha;
+      } else {
+        document.getElementById("status").textContent = i18n[currentLang].compassError;
+        window.removeEventListener('deviceorientation', handleOrientation);
+        return;
+      }
+      updateQiblaArrow(heading);
+    }
+
+    function startQibla() {
+      document.getElementById("retry-btn").style.display = "none";
+      document.getElementById("status").textContent = i18n[currentLang].locating;
+
+      navigator.geolocation.getCurrentPosition(pos => {
+        userLat = pos.coords.latitude;
+        userLon = pos.coords.longitude;
+        qiblaAngle = calculateQiblaAngle(userLat, userLon);
+        document.getElementById("status").textContent = currentLang === "ar" ? "يرجى توجيه هاتفك." : "Please point your phone.";
+        window.addEventListener('deviceorientation', handleOrientation, true);
+      }, err => {
+        document.getElementById("status").textContent = i18n[currentLang].locationError;
+        document.getElementById("retry-btn").style.display = "inline-block";
+      });
+    }
+
+    document.getElementById("retry-btn").addEventListener("click", () => {
+      startQibla();
+    });
+
+    setLanguage(currentLang);
+    startQibla();
+  </script>
+</body>
+</html>
