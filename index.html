@@ -44,7 +44,6 @@
       position: relative;
     }
 
-    /* أيقونة الكعبة صغيرة أعلى السهم */
     #kaaba-icon {
       position: absolute;
       top: -1.5em;
@@ -53,7 +52,7 @@
       font-size: 2.5rem;
       color: #ffd700;
       filter: drop-shadow(0 0 5px #ffd700);
-      display: none; /* تظهر فقط بعد تحديد الاتجاه */
+      display: none;
       user-select: none;
       pointer-events: none;
     }
@@ -69,9 +68,16 @@
       margin-top: 1rem;
       font-size: 1.15rem;
       color: #dcdcdccc;
-      min-height: 1.7em;
+      min-height: 2.2em;
       font-weight: 500;
       text-shadow: 0 0 4px rgba(0,0,0,0.2);
+    }
+
+    #calibration-tip {
+      margin-top: 0.8rem;
+      color: #ffdb58;
+      font-weight: bold;
+      text-shadow: 0 0 5px rgba(255, 219, 88, 0.8);
     }
 
     button, select, input {
@@ -103,7 +109,7 @@
       margin-top: 1rem;
       color: #ffb347;
       font-weight: 600;
-      text-shadow: 0 0 6px rgba(255 179 71, 0.8);
+      text-shadow: 0 0 6px rgba(255, 179, 71, 0.8);
       display: none;
     }
 
@@ -135,15 +141,14 @@
   <div id="angle"></div>
   <div id="distance"></div>
   <div id="status">جاري انتظار إذن الموقع والبوصلة...</div>
+  <div id="calibration-tip">🔄 حرك الهاتف على شكل 8 لتحسين دقة البوصلة</div>
   <button id="retry-btn">إعادة المحاولة</button>
   <br />
   <button id="lang-toggle">English</button>
 
   <div id="offline-info">لا تتوفر بيانات الموقع، يرجى توجيه الهاتف إلى اتجاه القبلة باستخدام البوصلة.</div>
 
-  <footer>
-    حقوق الملكية &copy; صلاح الدين
-  </footer>
+  <footer>حقوق الملكية &copy; صلاح الدين</footer>
 
   <audio id="beep" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"></audio>
 
@@ -158,6 +163,7 @@
       const distanceDisplay = document.getElementById('distance');
       const statusDisplay = document.getElementById('status');
       const offlineInfo = document.getElementById('offline-info');
+      const calibrationTip = document.getElementById('calibration-tip');
       const beepSound = document.getElementById('beep');
       const retryBtn = document.getElementById('retry-btn');
       const langToggle = document.getElementById('lang-toggle');
@@ -167,7 +173,6 @@
       let userLng = null;
       let deviceOrientation = null;
 
-      // النصوص بالعربية والإنجليزية
       const texts = {
         ar: {
           title: "اتجاه القبلة",
@@ -209,7 +214,6 @@
 
       let currentLang = 'ar';
 
-      // دالة تحديث النصوص بناءً على اللغة
       function updateTexts() {
         const t = texts[currentLang];
         title.textContent = t.title;
@@ -218,35 +222,23 @@
         langToggle.textContent = t.langToggle;
         offlineInfo.textContent = t.offlineInfo;
         document.querySelector('footer').textContent = t.footer;
-
-        // تحديث النصوص الأخرى حسب وجود بيانات
-        if (userLat !== null && userLng !== null && deviceOrientation !== null) {
-          // لنحدث الزاوية والمسافة والنصوص
-          const qiblaAngle = calculateQiblaAngle(userLat, userLng);
-          angleDisplay.textContent = `${t.qiblaAngle} ${qiblaAngle.toFixed(1)}°`;
-          const dist = calculateDistance(userLat, userLng, kaabaLat, kaabaLng);
-          distanceDisplay.textContent = `${t.distanceToKaaba} ${dist.toFixed(1)} km`;
-          statusDisplay.textContent = t.directionSet;
-        }
       }
 
-      // حساب المسافة بين نقطتين على سطح الكرة الأرضية (هارفين)
       function calculateDistance(lat1, lng1, lat2, lng2) {
         const toRad = angle => (angle * Math.PI) / 180;
-        const R = 6371; // نصف قطر الأرض بالكيلومتر
+        const R = 6371;
         const dLat = toRad(lat2 - lat1);
         const dLng = toRad(lng2 - lng1);
         const a =
           Math.sin(dLat / 2) * Math.sin(dLat / 2) +
           Math.cos(toRad(lat1)) *
-            Math.cos(toRad(lat2)) *
-            Math.sin(dLng / 2) *
-            Math.sin(dLng / 2);
+          Math.cos(toRad(lat2)) *
+          Math.sin(dLng / 2) *
+          Math.sin(dLng / 2);
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         return R * c;
       }
 
-      // حساب زاوية القبلة (الاتجاه من موقع المستخدم إلى الكعبة)
       function calculateQiblaAngle(lat1, lng1) {
         const toRad = angle => (angle * Math.PI) / 180;
         const toDeg = rad => (rad * 180) / Math.PI;
@@ -258,15 +250,12 @@
 
         const deltaLambda = lambdaK - lambdaU;
         const x = Math.sin(deltaLambda);
-        const y =
-          Math.cos(phiU) * Math.tan(phiK) - Math.sin(phiU) * Math.cos(deltaLambda);
+        const y = Math.cos(phiU) * Math.tan(phiK) - Math.sin(phiU) * Math.cos(deltaLambda);
 
         let angle = toDeg(Math.atan2(x, y));
-        angle = (angle + 360) % 360; // ضبط الزاوية لتكون بين 0 و360
-        return angle;
+        return (angle + 360) % 360;
       }
 
-      // تحديث عرض الاتجاه على السهم
       function updateQiblaArrow(deviceHeading) {
         if (userLat === null || userLng === null || deviceHeading === null) {
           statusDisplay.textContent = texts[currentLang].waitingHeading;
@@ -276,26 +265,22 @@
 
         const qiblaAngle = calculateQiblaAngle(userLat, userLng);
         const diff = (qiblaAngle - deviceHeading + 360) % 360;
+        const correctedDiff = (360 - diff) % 360;
 
-        // تدوير السهم حسب الفرق
-        qiblaArrow.style.transform = `rotate(${diff}deg)`;
-
-        // إظهار أيقونة الكعبة
+        qiblaArrow.style.transform = `rotate(${correctedDiff}deg)`;
         kaabaIcon.style.display = 'block';
 
-        // تحديث النصوص
         angleDisplay.textContent = `${texts[currentLang].qiblaAngle} ${qiblaAngle.toFixed(1)}°`;
         const dist = calculateDistance(userLat, userLng, kaabaLat, kaabaLng);
         distanceDisplay.textContent = `${texts[currentLang].distanceToKaaba} ${dist.toFixed(1)} km`;
-        statusDisplay.textContent = texts[currentLang].directionSet;
 
-        // أصدر صوت عند قرب التوجيه للقبلة (اختياري)
+        statusDisplay.textContent = `${texts[currentLang].directionSet} | alpha: ${deviceHeading.toFixed(1)}°, diff: ${diff.toFixed(1)}°`;
+
         if (Math.abs(diff) < 5) {
           beepSound.play().catch(() => {});
         }
       }
 
-      // الحصول على موقع المستخدم
       function requestLocation() {
         if (!navigator.geolocation) {
           statusDisplay.textContent = texts[currentLang].compassUnsupported;
@@ -310,18 +295,14 @@
             userLng = position.coords.longitude;
             statusDisplay.textContent = texts[currentLang].locationGot;
           },
-          error => {
+          () => {
             statusDisplay.textContent = texts[currentLang].locationFailed;
             offlineInfo.style.display = "block";
           },
-          {
-            enableHighAccuracy: true,
-            timeout: 10000,
-          }
+          { enableHighAccuracy: true, timeout: 10000 }
         );
       }
 
-      // التعامل مع بيانات البوصلة
       function setupDeviceOrientation() {
         if (window.DeviceOrientationEvent) {
           if (typeof DeviceOrientationEvent.requestPermission === "function") {
@@ -349,14 +330,13 @@
         }
       }
 
-      // دالة لمعالجة بيانات البوصلة
       function handleOrientation(event) {
         let alpha = event.alpha;
 
         if (typeof event.webkitCompassHeading !== "undefined") {
           alpha = event.webkitCompassHeading;
         } else if (event.absolute === true || event.absolute === undefined) {
-          alpha = alpha !== null ? alpha : 0;
+          alpha = alpha !== null ? alpha : null;
         } else {
           alpha = null;
         }
@@ -364,10 +344,11 @@
         if (alpha !== null) {
           deviceOrientation = alpha;
           updateQiblaArrow(deviceOrientation);
+        } else {
+          statusDisplay.textContent = `${texts[currentLang].compassError}. ${currentLang === 'ar' ? 'حرك الهاتف على شكل 8 لتحديث البوصلة.' : 'Move the phone in a figure-8 motion to recalibrate the compass.'}`;
         }
       }
 
-      // زر إعادة المحاولة
       retryBtn.addEventListener('click', () => {
         offlineInfo.style.display = "none";
         statusDisplay.textContent = texts[currentLang].waiting;
@@ -383,14 +364,10 @@
         setupDeviceOrientation();
       });
 
-      // زر تبديل اللغة
       langToggle.addEventListener('click', () => {
         currentLang = currentLang === 'ar' ? 'en' : 'ar';
-        // تحديث اتجاه الصفحة (rtl للغة العربية وltr للإنجليزية)
         document.documentElement.lang = currentLang;
         document.documentElement.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
-
-        // إعادة ضبط النصوص
         updateTexts();
       });
 
