@@ -84,65 +84,6 @@
       box-shadow: 0 6px 12px rgb(255 255 255 / 0.8);
     }
 
-    #manual-location {
-      margin-top: 2rem;
-      background: rgba(255 255 255 / 0.15);
-      padding: 1.8rem 2rem;
-      border-radius: 15px;
-      width: 320px;
-      box-shadow: 0 0 20px rgb(255 255 255 / 0.15);
-      backdrop-filter: blur(10px);
-    }
-
-    #manual-location label {
-      display: block;
-      margin-bottom: 0.5rem;
-      font-weight: 700;
-      font-size: 1rem;
-      color: #ffd700;
-      text-shadow: 0 0 4px rgba(0,0,0,0.25);
-    }
-
-    #manual-location select, 
-    #manual-location input {
-      width: 100%;
-      padding: 0.55em 0.9em;
-      font-size: 1rem;
-      border-radius: 10px;
-      border: none;
-      outline: none;
-      box-shadow: inset 0 0 6px rgba(0,0,0,0.15);
-      margin-bottom: 1.2rem;
-    }
-
-    #manual-location select:focus,
-    #manual-location input:focus {
-      box-shadow: 0 0 12px #ffd700;
-      background: rgba(255 255 255 / 0.3);
-      color: #4a2e00;
-      font-weight: 700;
-    }
-
-    #manual-location button {
-      background: #4a2e00;
-      color: #ffd700;
-      font-weight: 700;
-      padding: 0.65em 0;
-      font-size: 1.1rem;
-      border-radius: 40px;
-      border: none;
-      width: 100%;
-      cursor: pointer;
-      box-shadow: 0 4px 10px rgb(74 46 0 / 0.7);
-      transition: background-color 0.3s ease, color 0.3s ease;
-    }
-
-    #manual-location button:hover {
-      background: #ffd700;
-      color: #4a2e00;
-      box-shadow: 0 6px 14px rgb(255 215 0 / 0.8);
-    }
-
     #offline-info {
       margin-top: 1rem;
       color: #ffb347;
@@ -169,11 +110,6 @@
     }
 
     @media (max-width: 400px) {
-      #manual-location {
-        width: 90vw;
-        padding: 1.4rem 1.5rem;
-      }
-
       #qibla-arrow {
         font-size: 7rem;
       }
@@ -198,19 +134,6 @@
   <br />
   <button id="lang-toggle">English</button>
 
-  <div id="manual-location">
-    <label for="country">الدولة:</label>
-    <select id="country">
-      <option value="">اختر الدولة</option>
-      <option value="sa">السعودية</option>
-      <option value="eg">مصر</option>
-      <option value="jo">الأردن</option>
-    </select>
-    <label for="region">المحافظة / المنطقة:</label>
-    <input type="text" id="region" placeholder="أدخل المحافظة أو المنطقة" />
-    <button id="manual-location-btn">استخدام الموقع اليدوي</button>
-  </div>
-
   <div id="offline-info">لا تتوفر بيانات الموقع، يرجى توجيه الهاتف إلى اتجاه القبلة باستخدام البوصلة.</div>
 
   <!-- الخريطة -->
@@ -224,9 +147,172 @@
 
   <!-- JavaScript الرئيسي -->
   <script>
-    // كل الكود الخاص بحساب القبلة والموقع والبوصلة (نفس الموجود لديك)
-    // ⚠️ تم حذفه هنا لتوفير المساحة لأنك بالفعل أرفقته بالكامل في سؤالك السابق
-    // أضف كل سكربتات JavaScript الخاصة بك هنا كما هي من الكود السابق...
+    (() => {
+      const kaabaLat = 21.4225;
+      const kaabaLng = 39.8262;
+
+      const qiblaArrow = document.getElementById('qibla-arrow');
+      const angleDisplay = document.getElementById('angle');
+      const distanceDisplay = document.getElementById('distance');
+      const statusDisplay = document.getElementById('status');
+      const offlineInfo = document.getElementById('offline-info');
+      const beepSound = document.getElementById('beep');
+
+      let userLat = null;
+      let userLng = null;
+      let deviceOrientation = null;
+
+      // حساب المسافة بين نقطتين على سطح الكرة الأرضية (هارفين)
+      function calculateDistance(lat1, lng1, lat2, lng2) {
+        const toRad = angle => (angle * Math.PI) / 180;
+        const R = 6371; // نصف قطر الأرض بالكيلومتر
+        const dLat = toRad(lat2 - lat1);
+        const dLng = toRad(lng2 - lng1);
+        const a =
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos(toRad(lat1)) *
+            Math.cos(toRad(lat2)) *
+            Math.sin(dLng / 2) *
+            Math.sin(dLng / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+      }
+
+      // حساب زاوية القبلة (الاتجاه من موقع المستخدم إلى الكعبة)
+      function calculateQiblaAngle(lat1, lng1) {
+        const toRad = angle => (angle * Math.PI) / 180;
+        const toDeg = rad => (rad * 180) / Math.PI;
+
+        const phiK = toRad(kaabaLat);
+        const lambdaK = toRad(kaabaLng);
+        const phiU = toRad(lat1);
+        const lambdaU = toRad(lng1);
+
+        const deltaLambda = lambdaK - lambdaU;
+        const x = Math.sin(deltaLambda);
+        const y =
+          Math.cos(phiU) * Math.tan(phiK) - Math.sin(phiU) * Math.cos(deltaLambda);
+
+        let angle = toDeg(Math.atan2(x, y));
+        angle = (angle + 360) % 360; // ضبط الزاوية لتكون بين 0 و360
+        return angle;
+      }
+
+      // تحديث عرض الاتجاه على السهم
+      function updateQiblaArrow(deviceHeading) {
+        if (userLat === null || userLng === null || deviceHeading === null) {
+          statusDisplay.textContent = "انتظر تحديد الموقع والاتجاه...";
+          return;
+        }
+
+        const qiblaAngle = calculateQiblaAngle(userLat, userLng);
+        const diff = (qiblaAngle - deviceHeading + 360) % 360;
+
+        // تدوير السهم حسب الفرق
+        qiblaArrow.style.transform = `rotate(${diff}deg)`;
+
+        // تحديث النصوص
+        angleDisplay.textContent = `زاوية القبلة: ${qiblaAngle.toFixed(1)}°`;
+        const dist = calculateDistance(userLat, userLng, kaabaLat, kaabaLng);
+        distanceDisplay.textContent = `المسافة إلى الكعبة: ${dist.toFixed(1)} كم`;
+        statusDisplay.textContent = "تم تحديد الاتجاه";
+
+        // أصدر صوت عند قرب التوجيه للقبلة (اختياري)
+        if (Math.abs(diff) < 5) {
+          beepSound.play().catch(() => {});
+        }
+      }
+
+      // الحصول على موقع المستخدم
+      function requestLocation() {
+        if (!navigator.geolocation) {
+          statusDisplay.textContent = "المتصفح لا يدعم تحديد الموقع.";
+          offlineInfo.style.display = "block";
+          return;
+        }
+
+        statusDisplay.textContent = "جاري تحديد الموقع...";
+        navigator.geolocation.getCurrentPosition(
+          position => {
+            userLat = position.coords.latitude;
+            userLng = position.coords.longitude;
+            statusDisplay.textContent = "تم الحصول على الموقع.";
+          },
+          error => {
+            statusDisplay.textContent = "تعذر الحصول على الموقع.";
+            offlineInfo.style.display = "block";
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+          }
+        );
+      }
+
+      // التعامل مع بيانات البوصلة
+      function setupDeviceOrientation() {
+        if (window.DeviceOrientationEvent) {
+          if (typeof DeviceOrientationEvent.requestPermission === "function") {
+            DeviceOrientationEvent.requestPermission()
+              .then(permissionState => {
+                if (permissionState === "granted") {
+                  window.addEventListener("deviceorientationabsolute", handleOrientation, true);
+                  window.addEventListener("deviceorientation", handleOrientation, true);
+                } else {
+                  statusDisplay.textContent = "رفض إذن البوصلة.";
+                  offlineInfo.style.display = "block";
+                }
+              })
+              .catch(() => {
+                statusDisplay.textContent = "خطأ في طلب إذن البوصلة.";
+                offlineInfo.style.display = "block";
+              });
+          } else {
+            window.addEventListener("deviceorientationabsolute", handleOrientation, true);
+            window.addEventListener("deviceorientation", handleOrientation, true);
+          }
+        } else {
+          statusDisplay.textContent = "المتصفح لا يدعم البوصلة.";
+          offlineInfo.style.display = "block";
+        }
+      }
+
+      // دالة لمعالجة بيانات البوصلة
+      function handleOrientation(event) {
+        let alpha = event.alpha;
+
+        if (typeof event.webkitCompassHeading !== "undefined") {
+          alpha = event.webkitCompassHeading;
+        } else if (event.absolute === true || event.absolute === undefined) {
+          alpha = alpha !== null ? alpha : 0;
+        } else {
+          alpha = null;
+        }
+
+        if (alpha !== null) {
+          deviceOrientation = alpha;
+          updateQiblaArrow(deviceOrientation);
+        }
+      }
+
+      // زر إعادة المحاولة
+      document.getElementById('retry-btn').addEventListener('click', () => {
+        offlineInfo.style.display = "none";
+        statusDisplay.textContent = "جاري انتظار إذن الموقع والبوصلة...";
+        userLat = null;
+        userLng = null;
+        deviceOrientation = null;
+        requestLocation();
+        window.removeEventListener("deviceorientationabsolute", handleOrientation);
+        window.removeEventListener("deviceorientation", handleOrientation);
+        setupDeviceOrientation();
+      });
+
+      window.addEventListener('load', () => {
+        requestLocation();
+        setupDeviceOrientation();
+      });
+    })();
   </script>
 
   <!-- سكربت Google Maps -->
